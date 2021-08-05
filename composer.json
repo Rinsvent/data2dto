@@ -1,0 +1,30 @@
+{
+    "name": "rinsvent/data2dto",
+    "description": "Convert data to dto object",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.0",
+        "ext-ctype": "*",
+        "ext-iconv": "*",
+        "ext-json": "*",
+        "symfony/string": "^5.3",
+        "rinsvent/attribute-extractor": "^0.0.2"
+    },
+    "require-dev": {
+        "codeception/codeception": "^4.1",
+        "codeception/module-phpbrowser": "^1.0.0",
+        "codeception/module-asserts": "^1.0.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "tests\\": "tests/",
+            "Rinsvent\\Data2DTO\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Rinsvent\\Data2DTO\\Tests\\": "tests/"
+        }
+    }
+}
