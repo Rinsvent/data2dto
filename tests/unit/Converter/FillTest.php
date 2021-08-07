@@ -1,8 +1,9 @@
 <?php
 
-namespace Rinsvent\Data2DTO\Tests\Listener;
+namespace Rinsvent\Data2DTO\Tests\Converter;
 
 use Rinsvent\Data2DTO\Data2DtoConverter;
+use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\BuyRequest;
 use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\HelloRequest;
 
 class FillTest extends \Codeception\Test\Unit
@@ -24,8 +25,8 @@ class FillTest extends \Codeception\Test\Unit
     public function testSuccessFillRequestData()
     {
         $data2DtoConverter = new Data2DtoConverter();
-        $data2DtoConverter->convert([
-            'surname' => 'asdf',
+        $dto = $data2DtoConverter->convert([
+            'surname' => '   asdf',
             'fake_age' => 3,
             'emails' => [
                 'sfdgsa',
@@ -40,6 +41,17 @@ class FillTest extends \Codeception\Test\Unit
             ],
             'extraData1' => 'qwer'
         ], HelloRequest::class);
-        // $this->assertEquals('Hello igor', $response->getContent());
+        $this->assertInstanceOf(HelloRequest::class, $dto);
+        $this->assertEquals('asdf', $dto->surname);
+        $this->assertEquals(3, $dto->age);
+        $this->assertEquals([
+            'sfdgsa',
+            'af234f',
+            'asdf33333'
+        ], $dto->emails);
+        $this->assertInstanceOf(BuyRequest::class, $dto->buy);
+        $this->assertEquals('Buy buy!!!', $dto->buy->phrase);
+        $this->assertEquals(10, $dto->buy->length);
+        $this->assertEquals(true, $dto->buy->isFirst);
     }
 }
