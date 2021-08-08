@@ -16,4 +16,6 @@ class HelloRequest
     #[DTOMeta(class: Author::class)]
     public array $authors;
     public BuyRequest $buy;
+    #[DTOMeta(class: Bar::class)]
+    public BarInterface $bar;
 }

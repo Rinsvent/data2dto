@@ -3,6 +3,7 @@
 namespace Rinsvent\Data2DTO\Tests\Converter;
 
 use Rinsvent\Data2DTO\Data2DtoConverter;
+use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\Bar;
 use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\BuyRequest;
 use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\HelloRequest;
 
@@ -47,6 +48,9 @@ class FillTest extends \Codeception\Test\Unit
                 'isFirst' => true,
                 'extraData2' => '1234'
             ],
+            'bar' => [
+                'barField' => 32
+            ],
             'extraData1' => 'qwer'
         ], HelloRequest::class);
         $this->assertInstanceOf(HelloRequest::class, $dto);
@@ -65,5 +69,9 @@ class FillTest extends \Codeception\Test\Unit
         $this->assertCount(2, $dto->authors);
         $this->assertEquals('Tolkien', $dto->authors[0]->name);
         $this->assertEquals('Sapkovsky', $dto->authors[1]->name);
+
+        $this->assertInstanceOf(Bar::class, $dto->bar);
+        $this->assertIsFloat($dto->bar->barField);
+        $this->assertEquals(32.0, $dto->bar->barField);
     }
 }

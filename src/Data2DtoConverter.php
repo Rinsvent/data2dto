@@ -42,10 +42,27 @@ class Data2DtoConverter
                     continue;
                 }
 
-                // Если это class, то рекурсивно заполняем дальше
-                if (class_exists($propertyType)) {
-                    $value = $this->convert($value, $propertyType);
+                $preparedPropertyType = $propertyType;
+
+                if (interface_exists($preparedPropertyType)) {
+                    $attributedPropertyClass = $this->grabPropertyDTOClass($property);
+                    // Если не указали мета информацию для интерфейса - пропустим
+                    if (!$attributedPropertyClass) {
+                        continue;
+                    }
+                    // Если класс не реализует интерфейс свойства - пропустим
+                    $interfaces = class_implements($attributedPropertyClass);
+                    if (!isset($interfaces[$preparedPropertyType])) {
+                        continue;
+                    }
+                    $preparedPropertyType = $attributedPropertyClass;
                 }
+
+                // Если это class, то рекурсивно заполняем дальше
+                if (class_exists($preparedPropertyType)) {
+                    $value = $this->convert($value, $preparedPropertyType);
+                }
+
                 // присваиваем получившееся значение
                 $property->setValue($object, $value);
             }
@@ -109,13 +126,7 @@ class Data2DtoConverter
 
     private function transformArray(&$value, \ReflectionProperty $property): bool
     {
-        $attributedPropertyClass = null;
-        $propertyName = $property->getName();
-        $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
-        /** @var DTOMeta $dtoMeta */
-        if ($dtoMeta = $propertyExtractor->fetch(DTOMeta::class)) {
-            $attributedPropertyClass = $dtoMeta->class;
-        }
+        $attributedPropertyClass = $this->grabPropertyDTOClass($property);
 
         /** @var \ReflectionNamedType $reflectionPropertyType */
         $reflectionPropertyType = $property->getType();
@@ -134,5 +145,17 @@ class Data2DtoConverter
             $value = $tempValue;
         }
         return true;
+    }
+
+    private function grabPropertyDTOClass(\ReflectionProperty $property): ?string
+    {
+        $attributedPropertyClass = null;
+        $propertyName = $property->getName();
+        $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
+        /** @var DTOMeta $dtoMeta */
+        if ($dtoMeta = $propertyExtractor->fetch(DTOMeta::class)) {
+            $attributedPropertyClass = $dtoMeta->class;
+        }
+        return $attributedPropertyClass;
     }
 }
