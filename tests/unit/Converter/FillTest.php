@@ -33,6 +33,14 @@ class FillTest extends \Codeception\Test\Unit
                 'af234f',
                 'asdf33333'
             ],
+            'authors' => [
+                [
+                    'name' => 'Tolkien',
+                ],
+                [
+                    'name' => 'Sapkovsky'
+                ]
+            ],
             'buy' => [
                 'phrase' => 'Buy buy!!!',
                 'length' => 10,
@@ -53,5 +61,9 @@ class FillTest extends \Codeception\Test\Unit
         $this->assertEquals('Buy buy!!!', $dto->buy->phrase);
         $this->assertEquals(10, $dto->buy->length);
         $this->assertEquals(true, $dto->buy->isFirst);
+
+        $this->assertCount(2, $dto->authors);
+        $this->assertEquals('Tolkien', $dto->authors[0]->name);
+        $this->assertEquals('Sapkovsky', $dto->authors[1]->name);
     }
 }

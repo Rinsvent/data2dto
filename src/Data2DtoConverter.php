@@ -3,6 +3,7 @@
 namespace Rinsvent\Data2DTO;
 
 use Rinsvent\AttributeExtractor\PropertyExtractor;
+use Rinsvent\Data2DTO\Attribute\DTOMeta;
 use Rinsvent\Data2DTO\Attribute\PropertyPath;
 use Rinsvent\Data2DTO\Resolver\TransformerResolverStorage;
 use Rinsvent\Data2DTO\Transformer\Meta;
@@ -37,6 +38,27 @@ class Data2DtoConverter
                     $property->setValue($object, $value);
                     continue;
                 }
+                $attributedPropertyClass = null;
+                $propertyName = $property->getName();
+                $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
+                /** @var DTOMeta $dtoMeta */
+                if ($dtoMeta = $propertyExtractor->fetch(DTOMeta::class)) {
+                    $attributedPropertyClass = $dtoMeta->class;
+                }
+
+                // Если массив и есть атрибут с указанием класса, то также преобразуем структуру
+                if ($propertyType === 'array' && $attributedPropertyClass) {
+                    // Если тип у ДТО - массив, а в значении не массив - пропустим
+                    if (!is_array($value)) {
+                        continue;
+                    }
+                    $tempValue = [];
+                    foreach ($value as $itemValue) {
+                        $tempValue[] = $this->convert($itemValue, $attributedPropertyClass);
+                    }
+                    $value = $tempValue;
+                }
+
                 // Если это class, то рекурсивно заполняем дальше
                 if (class_exists($propertyType)) {
                     $value = $this->convert($value, $propertyType);
