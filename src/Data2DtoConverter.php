@@ -29,8 +29,7 @@ class Data2DtoConverter
                 // Трансформируем данные
                 $this->processTransformers($property, $value);
 
-                // Если значение в $data = null, но поле не может его принять - пропустим
-                if ($value === null && !$reflectionPropertyType->allowsNull()) {
+                if ($this->checkNullRule($value, $reflectionPropertyType)) {
                     continue;
                 }
                 // В данных лежит объект, то дальше его не заполняем. Только присваиваем. Например, entity, document
@@ -38,25 +37,9 @@ class Data2DtoConverter
                     $property->setValue($object, $value);
                     continue;
                 }
-                $attributedPropertyClass = null;
-                $propertyName = $property->getName();
-                $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
-                /** @var DTOMeta $dtoMeta */
-                if ($dtoMeta = $propertyExtractor->fetch(DTOMeta::class)) {
-                    $attributedPropertyClass = $dtoMeta->class;
-                }
 
-                // Если массив и есть атрибут с указанием класса, то также преобразуем структуру
-                if ($propertyType === 'array' && $attributedPropertyClass) {
-                    // Если тип у ДТО - массив, а в значении не массив - пропустим
-                    if (!is_array($value)) {
-                        continue;
-                    }
-                    $tempValue = [];
-                    foreach ($value as $itemValue) {
-                        $tempValue[] = $this->convert($itemValue, $attributedPropertyClass);
-                    }
-                    $value = $tempValue;
+                if (!$this->transformArray($value, $property)) {
+                    continue;
                 }
 
                 // Если это class, то рекурсивно заполняем дальше
@@ -114,5 +97,42 @@ class Data2DtoConverter
         $storage = TransformerResolverStorage::getInstance();
         $resolver = $storage->get($meta::TYPE);
         return $resolver->resolve($meta);
+    }
+
+    /**
+     * Если значение в $data = null, но поле не может его принять - пропустим
+     */
+    private function checkNullRule($value, \ReflectionNamedType $reflectionPropertyType): bool
+    {
+        return $value === null && !$reflectionPropertyType->allowsNull();
+    }
+
+    private function transformArray(&$value, \ReflectionProperty $property): bool
+    {
+        $attributedPropertyClass = null;
+        $propertyName = $property->getName();
+        $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
+        /** @var DTOMeta $dtoMeta */
+        if ($dtoMeta = $propertyExtractor->fetch(DTOMeta::class)) {
+            $attributedPropertyClass = $dtoMeta->class;
+        }
+
+        /** @var \ReflectionNamedType $reflectionPropertyType */
+        $reflectionPropertyType = $property->getType();
+        $propertyType = $reflectionPropertyType->getName();
+
+        // Если массив и есть атрибут с указанием класса, то также преобразуем структуру
+        if ($propertyType === 'array' && $attributedPropertyClass) {
+            // Если тип у ДТО - массив, а в значении не массив - пропустим
+            if (!is_array($value)) {
+                return false;
+            }
+            $tempValue = [];
+            foreach ($value as $itemValue) {
+                $tempValue[] = $this->convert($itemValue, $attributedPropertyClass);
+            }
+            $value = $tempValue;
+        }
+        return true;
     }
 }
