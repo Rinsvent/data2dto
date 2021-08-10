@@ -6,7 +6,7 @@ Data2dto
 
 ## Установка
 ```php
-composer require rinsvent-data2dto
+composer require rinsvent/data2dto
 ```
 
 ## Пример
