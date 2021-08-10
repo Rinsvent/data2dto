@@ -49,32 +49,32 @@ class HelloRequest
 use Rinsvent\Data2DTO\Data2DtoConverter;
 
 $data2DtoConverter = new Data2DtoConverter();
-        $dto = $data2DtoConverter->convert([
-            'surname' => '   asdf',
-            'fake_age' => 3,
-            'emails' => [
-                'sfdgsa',
-                'af234f',
-                'asdf33333'
-            ],
-            'authors' => [
-                [
-                    'name' => 'Tolkien',
-                ],
-                [
-                    'name' => 'Sapkovsky'
-                ]
-            ],
-            'buy' => [
-                'phrase' => 'Buy buy!!!',
-                'length' => 10,
-                'isFirst' => true,
-                'extraData2' => '1234'
-            ],
-            'bar' => [
-                'barField' => 32
-            ],
-            'extraData1' => 'qwer'
-        ], HelloRequest::class);
+$dto = $data2DtoConverter->convert([
+    'surname' => '   asdf',
+    'fake_age' => 3,
+    'emails' => [
+        'sfdgsa',
+        'af234f',
+        'asdf33333'
+    ],
+    'authors' => [
+        [
+            'name' => 'Tolkien',
+        ],
+        [
+            'name' => 'Sapkovsky'
+        ]
+    ],
+    'buy' => [
+        'phrase' => 'Buy buy!!!',
+        'length' => 10,
+        'isFirst' => true,
+        'extraData2' => '1234'
+    ],
+    'bar' => [
+        'barField' => 32
+    ],
+    'extraData1' => 'qwer'
+], HelloRequest::class);
 ```
 
