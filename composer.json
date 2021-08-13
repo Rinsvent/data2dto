@@ -1,7 +1,6 @@
 {
     "name": "rinsvent/data2dto",
     "description": "Convert data to dto object",
-    "type": "project",
     "license": "proprietary",
     "require": {
         "php": "^8.0",
