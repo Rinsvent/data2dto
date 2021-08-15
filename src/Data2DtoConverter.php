@@ -2,6 +2,7 @@
 
 namespace Rinsvent\Data2DTO;
 
+use Rinsvent\AttributeExtractor\ClassExtractor;
 use Rinsvent\AttributeExtractor\PropertyExtractor;
 use Rinsvent\Data2DTO\Attribute\DTOMeta;
 use Rinsvent\Data2DTO\Attribute\PropertyPath;
@@ -12,11 +13,16 @@ use function Symfony\Component\String\u;
 
 class Data2DtoConverter
 {
-    public function convert(array $data, string $class): object
+    public function convert(array $data, string $class, array $tags = [], ?object $instance = null): object
     {
-        $object = new $class;
-
+        $tags = empty($tags) ? ['default'] : $tags;
+        $object = $instance ?? new $class;
         $reflectionObject = new \ReflectionObject($object);
+        $this->processClassTransformers($reflectionObject, $data, $tags);
+        if (is_object($data)) {
+            return $data;
+        }
+
         $properties = $reflectionObject->getProperties();
         /** @var \ReflectionProperty $property */
         foreach ($properties as $property) {
@@ -27,7 +33,7 @@ class Data2DtoConverter
             if ($dataPath = $this->grabDataPath($property, $data)) {
                 $value = $data[$dataPath];
                 // Трансформируем данные
-                $this->processTransformers($property, $value);
+                $this->processTransformers($property, $value, $tags);
 
                 if ($this->checkNullRule($value, $reflectionPropertyType)) {
                     continue;
@@ -98,12 +104,38 @@ class Data2DtoConverter
         return null;
     }
 
-    protected function processTransformers(\ReflectionProperty $property, &$data): void
+    protected function processClassTransformers(\ReflectionObject $object, &$data, array $tags): void
+    {
+        $className = $object->getName();
+        $classExtractor = new ClassExtractor($className);
+        /** @var Meta $transformMeta */
+        while ($transformMeta = $classExtractor->fetch(Meta::class)) {
+            $transformMeta->returnType = $className;
+            $filteredTags = array_diff($tags, $transformMeta->tags);
+            if (count($filteredTags) === count($tags)) {
+                continue;
+            }
+
+            $transformer = $this->grabTransformer($transformMeta);
+            $transformer->transform($data, $transformMeta);
+        }
+    }
+
+    protected function processTransformers(\ReflectionProperty $property, &$data, array $tags): void
     {
         $propertyName = $property->getName();
         $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
         /** @var Meta $transformMeta */
-        if ($transformMeta = $propertyExtractor->fetch(Meta::class)) {
+        while ($transformMeta = $propertyExtractor->fetch(Meta::class)) {
+            $filteredTags = array_diff($tags, $transformMeta->tags);
+            if (count($filteredTags) === count($tags)) {
+                continue;
+            }
+            /** @var \ReflectionNamedType $reflectionPropertyType */
+            $reflectionPropertyType = $property->getType();
+            $propertyType = $reflectionPropertyType->getName();
+            $transformMeta->returnType = $propertyType;
+            $transformMeta->allowsNull = $reflectionPropertyType->allowsNull();
             $transformer = $this->grabTransformer($transformMeta);
             $transformer->transform($data, $transformMeta);
         }

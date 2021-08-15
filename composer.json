@@ -1,7 +1,7 @@
 {
     "name": "rinsvent/data2dto",
     "description": "Convert data to dto object",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": "^8.0",
         "ext-ctype": "*",
