@@ -30,21 +30,18 @@ class Data2DtoConverter
             $reflectionPropertyType = $property->getType();
             $propertyType = $reflectionPropertyType->getName();
 
-            if ($dataPath = $this->grabDataPath($property, $data)) {
+            if ($dataPath = $this->grabDataPath($property, $data, $tags)) {
                 $value = $data[$dataPath];
                 // Трансформируем данные
                 $this->processTransformers($property, $value, $tags);
 
-                if ($this->checkNullRule($value, $reflectionPropertyType)) {
-                    continue;
-                }
                 // В данных лежит объект, то дальше его не заполняем. Только присваиваем. Например, entity, document
                 if (is_object($value)) {
                     $property->setValue($object, $value);
                     continue;
                 }
 
-                if (!$this->transformArray($value, $property)) {
+                if (!$this->transformArray($value, $property, $tags)) {
                     continue;
                 }
 
@@ -66,7 +63,16 @@ class Data2DtoConverter
 
                 // Если это class, то рекурсивно заполняем дальше
                 if (class_exists($preparedPropertyType)) {
-                    $value = $this->convert($value, $preparedPropertyType);
+                    if ($property->isInitialized($object)) {
+                        $propertyValue = $property->getValue($object);
+                        $value = $this->convert($value, $preparedPropertyType, $tags, $propertyValue);
+                    } else {
+                        $value = $this->convert($value, $preparedPropertyType, $tags);
+                    }
+                }
+
+                if ($this->checkNullRule($value, $reflectionPropertyType)) {
+                    continue;
                 }
 
                 // присваиваем получившееся значение
@@ -77,13 +83,18 @@ class Data2DtoConverter
         return $object;
     }
 
-    protected function grabDataPath(\ReflectionProperty $property, array $data): ?string
+    protected function grabDataPath(\ReflectionProperty $property, array $data, array $tags): ?string
     {
         $propertyName = $property->getName();
         $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
         /** @var PropertyPath $propertyPath */
         if ($propertyPath = $propertyExtractor->fetch(PropertyPath::class)) {
-            return $propertyPath->path;
+            $filteredTags = array_diff($tags, $propertyPath->tags);
+            if (count($filteredTags) !== count($tags)) {
+                if (key_exists($propertyPath->path, $data)) {
+                    return $propertyPath->path;
+                }
+            }
         }
 
         if (key_exists($propertyName, $data)) {
@@ -156,7 +167,7 @@ class Data2DtoConverter
         return $value === null && !$reflectionPropertyType->allowsNull();
     }
 
-    private function transformArray(&$value, \ReflectionProperty $property): bool
+    private function transformArray(&$value, \ReflectionProperty $property, array $tags): bool
     {
         $attributedPropertyClass = $this->grabPropertyDTOClass($property);
 
@@ -172,7 +183,7 @@ class Data2DtoConverter
             }
             $tempValue = [];
             foreach ($value as $itemValue) {
-                $tempValue[] = $this->convert($itemValue, $attributedPropertyClass);
+                $tempValue[] = $this->convert($itemValue, $attributedPropertyClass, $tags);
             }
             $value = $tempValue;
         }

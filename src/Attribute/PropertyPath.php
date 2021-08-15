@@ -6,6 +6,8 @@ namespace Rinsvent\Data2DTO\Attribute;
 class PropertyPath
 {
     public function __construct(
-        public string $path
+        public string $path,
+        /** @var string[] $tags */
+        public array $tags = ['default']
     ) {}
 }

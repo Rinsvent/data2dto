@@ -8,6 +8,8 @@ abstract class Meta
     public const TYPE = 'simple';
     public ?string $returnType = null;
     public ?bool $allowsNull = null;
-    /** @var string[] $tags */
-    public array $tags = ['default'];
+
+    public function __construct(
+        public array $tags = ['default']
+    ) {}
 }
