@@ -6,6 +6,7 @@ use Rinsvent\AttributeExtractor\ClassExtractor;
 use Rinsvent\AttributeExtractor\PropertyExtractor;
 use Rinsvent\Data2DTO\Attribute\DTOMeta;
 use Rinsvent\Data2DTO\Attribute\PropertyPath;
+use Rinsvent\Data2DTO\Attribute\VirtualProperty;
 use Rinsvent\Data2DTO\Resolver\TransformerResolverStorage;
 use Rinsvent\Data2DTO\Transformer\Meta;
 use Rinsvent\Data2DTO\Transformer\TransformerInterface;
@@ -29,6 +30,14 @@ class Data2DtoConverter
             /** @var \ReflectionNamedType $reflectionPropertyType */
             $reflectionPropertyType = $property->getType();
             $propertyType = $reflectionPropertyType->getName();
+
+            // Для виртуальных полей добавляем пустой масиив, чтобы заполнить поля дто
+            $propertyExtractor = new PropertyExtractor($property->class, $property->getName());
+            if ($propertyExtractor->fetch(VirtualProperty::class)) {
+                if (!array_key_exists($property->getName(), $data)) {
+                    $data[$property->getName()] = [];
+                }
+            }
 
             if ($dataPath = $this->grabDataPath($property, $data, $tags)) {
                 $value = $data[$dataPath];
