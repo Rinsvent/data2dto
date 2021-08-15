@@ -2,11 +2,11 @@
 
 namespace Rinsvent\Data2DTO\Attribute;
 
+/** @property string[] $tags */
 #[\Attribute]
 class VirtualProperty
 {
     public function __construct(
-        /** @var string[] $tags */
         public array $tags = ['default']
     ) {}
 }
