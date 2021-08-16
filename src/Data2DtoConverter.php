@@ -18,6 +18,8 @@ class Data2DtoConverter
     {
         $tags = empty($tags) ? ['default'] : $tags;
         $reflectionObject = new \ReflectionObject($object);
+
+        // Трнансформируем на уровне класса
         $this->processClassTransformers($reflectionObject, $data, $tags);
         if (is_object($data)) {
             return $data;
@@ -33,9 +35,15 @@ class Data2DtoConverter
             // Для виртуальных полей добавляем пустой масиив, чтобы заполнить поля дто
             $propertyExtractor = new PropertyExtractor($property->class, $property->getName());
             if ($propertyExtractor->fetch(VirtualProperty::class)) {
-                if (!array_key_exists($property->getName(), $data)) {
-                    $data[$property->getName()] = [];
+                if ($property->isInitialized($object)) {
+                    $propertyValue = $property->getValue($object);
+                    $value = $this->convert($data, $propertyValue, $tags);
+                } else {
+                    $value = $this->convert($data, new $propertyType, $tags);
                 }
+                // присваиваем получившееся значение
+                $property->setValue($object, $value);
+                continue;
             }
 
             if ($dataPath = $this->grabDataPath($property, $data, $tags)) {
