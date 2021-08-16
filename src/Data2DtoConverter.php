@@ -14,10 +14,9 @@ use function Symfony\Component\String\u;
 
 class Data2DtoConverter
 {
-    public function convert(array $data, string $class, array $tags = [], ?object $instance = null): object
+    public function convert(array $data, object $object, array $tags = []): object
     {
         $tags = empty($tags) ? ['default'] : $tags;
-        $object = $instance ?? new $class;
         $reflectionObject = new \ReflectionObject($object);
         $this->processClassTransformers($reflectionObject, $data, $tags);
         if (is_object($data)) {
@@ -74,9 +73,9 @@ class Data2DtoConverter
                 if (class_exists($preparedPropertyType)) {
                     if ($property->isInitialized($object)) {
                         $propertyValue = $property->getValue($object);
-                        $value = $this->convert($value, $preparedPropertyType, $tags, $propertyValue);
+                        $value = $this->convert($value, new $preparedPropertyType, $tags, $propertyValue);
                     } else {
-                        $value = $this->convert($value, $preparedPropertyType, $tags);
+                        $value = $this->convert($value, new $preparedPropertyType, $tags);
                     }
                 }
 
@@ -192,7 +191,7 @@ class Data2DtoConverter
             }
             $tempValue = [];
             foreach ($value as $itemValue) {
-                $tempValue[] = $this->convert($itemValue, $attributedPropertyClass, $tags);
+                $tempValue[] = $this->convert($itemValue, new $attributedPropertyClass, $tags);
             }
             $value = $tempValue;
         }

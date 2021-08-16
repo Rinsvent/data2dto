@@ -52,7 +52,7 @@ class FillTest extends \Codeception\Test\Unit
                 'barField' => 32
             ],
             'extraData1' => 'qwer'
-        ], HelloRequest::class);
+        ], new HelloRequest);
         $this->assertInstanceOf(HelloRequest::class, $dto);
         $this->assertEquals('asdf', $dto->surname);
         $this->assertEquals(3, $dto->age);

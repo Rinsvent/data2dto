@@ -75,6 +75,6 @@ $dto = $data2DtoConverter->convert([
         'barField' => 32
     ],
     'extraData1' => 'qwer'
-], HelloRequest::class);
+], new HelloRequest);
 ```
 
