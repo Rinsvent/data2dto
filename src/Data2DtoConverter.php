@@ -2,6 +2,7 @@
 
 namespace Rinsvent\Data2DTO;
 
+use ReflectionProperty;
 use Rinsvent\AttributeExtractor\ClassExtractor;
 use Rinsvent\AttributeExtractor\PropertyExtractor;
 use Rinsvent\Data2DTO\Attribute\DTOMeta;
@@ -19,7 +20,6 @@ class Data2DtoConverter
         $tags = empty($tags) ? ['default'] : $tags;
         $reflectionObject = new \ReflectionObject($object);
 
-        // Трнансформируем на уровне класса
         $this->processClassTransformers($reflectionObject, $data, $tags);
         if (is_object($data)) {
             return $data;
@@ -32,71 +32,105 @@ class Data2DtoConverter
             $reflectionPropertyType = $property->getType();
             $propertyType = $reflectionPropertyType->getName();
 
-            // Для виртуальных полей добавляем пустой масиив, чтобы заполнить поля дто
-            $propertyExtractor = new PropertyExtractor($property->class, $property->getName());
-            if ($propertyExtractor->fetch(VirtualProperty::class)) {
-                if ($property->isInitialized($object)) {
-                    $propertyValue = $property->getValue($object);
-                    $value = $this->convert($data, $propertyValue, $tags);
-                } else {
-                    $value = $this->convert($data, new $propertyType, $tags);
-                }
-                // присваиваем получившееся значение
-                $property->setValue($object, $value);
+            if ($this->processVirtualProperty($object, $property, $data, $tags)) {
                 continue;
             }
 
             if ($dataPath = $this->grabDataPath($property, $data, $tags)) {
                 $value = $data[$dataPath];
-                // Трансформируем данные
+
                 $this->processTransformers($property, $value, $tags);
 
-                // В данных лежит объект, то дальше его не заполняем. Только присваиваем. Например, entity, document
-                if (is_object($value)) {
-                    $property->setValue($object, $value);
+                if ($this->processDataObject($object, $property, $value)) {
                     continue;
                 }
 
-                if (!$this->transformArray($value, $property, $tags)) {
+                if ($this->processArray($value, $property, $tags)) {
                     continue;
                 }
 
                 $preparedPropertyType = $propertyType;
-
-                if (interface_exists($preparedPropertyType)) {
-                    $attributedPropertyClass = $this->grabPropertyDTOClass($property);
-                    // Если не указали мета информацию для интерфейса - пропустим
-                    if (!$attributedPropertyClass) {
-                        continue;
-                    }
-                    // Если класс не реализует интерфейс свойства - пропустим
-                    $interfaces = class_implements($attributedPropertyClass);
-                    if (!isset($interfaces[$preparedPropertyType])) {
-                        continue;
-                    }
-                    $preparedPropertyType = $attributedPropertyClass;
-                }
-
-                // Если это class, то рекурсивно заполняем дальше
-                if (class_exists($preparedPropertyType)) {
-                    if ($property->isInitialized($object)) {
-                        $propertyValue = $property->getValue($object);
-                        $value = $this->convert($value, new $preparedPropertyType, $tags, $propertyValue);
-                    } else {
-                        $value = $this->convert($value, new $preparedPropertyType, $tags);
-                    }
-                }
-
-                if ($this->checkNullRule($value, $reflectionPropertyType)) {
+                if ($this->processInterface($property, $preparedPropertyType)) {
                     continue;
                 }
 
-                // присваиваем получившееся значение
+                $this->processClass($object, $property, $preparedPropertyType, $value, $tags);
+
+                if ($this->processNull($value, $reflectionPropertyType)) {
+                    continue;
+                }
+
                 $property->setValue($object, $value);
             }
         }
 
         return $object;
+    }
+
+    /**
+     * Для виртуальных полей добавляем пустой масиив, чтобы заполнить поля дто
+     */
+    protected function processVirtualProperty(object $object, \ReflectionProperty $property, array $data, array $tags): bool
+    {
+        $propertyExtractor = new PropertyExtractor($property->class, $property->getName());
+        if ($propertyExtractor->fetch(VirtualProperty::class)) {
+            if ($property->isInitialized($object)) {
+                $propertyValue = $property->getValue($object);
+                $value = $this->convert($data, $propertyValue, $tags);
+            } else {
+                $propertyType = $property->getType()->getName();
+                $value = $this->convert($data, new $propertyType, $tags);
+            }
+            // присваиваем получившееся значение
+            $property->setValue($object, $value);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * В данных лежит объект, то дальше его не заполняем. Только присваиваем. Например, entity, document
+     */
+    protected function processDataObject(object $object, \ReflectionProperty $property, $value): bool
+    {
+        if (is_object($value)) {
+            $property->setValue($object, $value);
+            return true;
+        }
+        return false;
+    }
+
+    protected function processInterface(ReflectionProperty $property, &$preparedPropertyType): bool
+    {
+        if (interface_exists($preparedPropertyType)) {
+            $attributedPropertyClass = $this->grabPropertyDTOClass($property);
+            // Если не указали мета информацию для интерфейса - пропустим
+            if (!$attributedPropertyClass) {
+                return true;
+            }
+            // Если класс не реализует интерфейс свойства - пропустим
+            $interfaces = class_implements($attributedPropertyClass);
+            if (!isset($interfaces[$preparedPropertyType])) {
+                return true;
+            }
+            $preparedPropertyType = $attributedPropertyClass;
+        }
+        return false;
+    }
+
+    /**
+     * Если это class, то рекурсивно заполняем дальше
+     */
+    protected function processClass(object $object, ReflectionProperty $property, string $preparedPropertyType, &$value, array $tags)
+    {
+        if (class_exists($preparedPropertyType)) {
+            if ($property->isInitialized($object)) {
+                $propertyValue = $property->getValue($object);
+                $value = $this->convert($value, $propertyValue, $tags);
+            } else {
+                $value = $this->convert($value, new $preparedPropertyType, $tags);
+            }
+        }
     }
 
     protected function grabDataPath(\ReflectionProperty $property, array $data, array $tags): ?string
@@ -131,6 +165,9 @@ class Data2DtoConverter
         return null;
     }
 
+    /**
+     * Трнансформируем на уровне класса
+     */
     protected function processClassTransformers(\ReflectionObject $object, &$data, array $tags): void
     {
         $className = $object->getName();
@@ -148,6 +185,9 @@ class Data2DtoConverter
         }
     }
 
+    /**
+     * Трнансформируем на уровне свойст объекта
+     */
     protected function processTransformers(\ReflectionProperty $property, &$data, array $tags): void
     {
         $propertyName = $property->getName();
@@ -178,12 +218,12 @@ class Data2DtoConverter
     /**
      * Если значение в $data = null, но поле не может его принять - пропустим
      */
-    private function checkNullRule($value, \ReflectionNamedType $reflectionPropertyType): bool
+    private function processNull($value, \ReflectionNamedType $reflectionPropertyType): bool
     {
         return $value === null && !$reflectionPropertyType->allowsNull();
     }
 
-    private function transformArray(&$value, \ReflectionProperty $property, array $tags): bool
+    private function processArray(&$value, \ReflectionProperty $property, array $tags): bool
     {
         $attributedPropertyClass = $this->grabPropertyDTOClass($property);
 
@@ -195,7 +235,7 @@ class Data2DtoConverter
         if ($propertyType === 'array' && $attributedPropertyClass) {
             // Если тип у ДТО - массив, а в значении не массив - пропустим
             if (!is_array($value)) {
-                return false;
+                return true;
             }
             $tempValue = [];
             foreach ($value as $itemValue) {
@@ -203,18 +243,17 @@ class Data2DtoConverter
             }
             $value = $tempValue;
         }
-        return true;
+        return false;
     }
 
     private function grabPropertyDTOClass(\ReflectionProperty $property): ?string
     {
-        $attributedPropertyClass = null;
         $propertyName = $property->getName();
         $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
         /** @var DTOMeta $dtoMeta */
         if ($dtoMeta = $propertyExtractor->fetch(DTOMeta::class)) {
-            $attributedPropertyClass = $dtoMeta->class;
+            return $dtoMeta->class;
         }
-        return $attributedPropertyClass;
+        return null;
     }
 }
