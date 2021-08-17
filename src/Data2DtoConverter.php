@@ -36,32 +36,30 @@ class Data2DtoConverter
                 continue;
             }
 
-            if ($dataPath = $this->grabDataPath($property, $data, $tags)) {
-                $value = $data[$dataPath];
+            $value = $this->grabValue($property, $data, $tags);
 
-                $this->processTransformers($property, $value, $tags);
+            $this->processTransformers($property, $value, $tags);
 
-                if ($this->processDataObject($object, $property, $value)) {
-                    continue;
-                }
-
-                if ($this->processArray($value, $property, $tags)) {
-                    continue;
-                }
-
-                $preparedPropertyType = $propertyType;
-                if ($this->processInterface($property, $preparedPropertyType)) {
-                    continue;
-                }
-
-                $this->processClass($object, $property, $preparedPropertyType, $value, $tags);
-
-                if ($this->processNull($value, $reflectionPropertyType)) {
-                    continue;
-                }
-
-                $property->setValue($object, $value);
+            if ($this->processDataObject($object, $property, $value)) {
+                continue;
             }
+
+            if ($this->processArray($property, $value, $tags)) {
+                continue;
+            }
+
+            $preparedPropertyType = $propertyType;
+            if ($this->processInterface($property, $preparedPropertyType)) {
+                continue;
+            }
+
+            $this->processClass($object, $property, $preparedPropertyType, $value, $tags);
+
+            if ($this->processNull($reflectionPropertyType, $value)) {
+                continue;
+            }
+
+            $property->setValue($object, $value);
         }
 
         return $object;
@@ -133,6 +131,15 @@ class Data2DtoConverter
         }
     }
 
+    protected function grabValue(\ReflectionProperty $property, array $data, array $tags)
+    {
+        if ($dataPath = $this->grabDataPath($property, $data, $tags)) {
+            return $data[$dataPath] ?? null;
+        }
+
+        return null;
+    }
+
     protected function grabDataPath(\ReflectionProperty $property, array $data, array $tags): ?string
     {
         $propertyName = $property->getName();
@@ -141,13 +148,13 @@ class Data2DtoConverter
         if ($propertyPath = $propertyExtractor->fetch(PropertyPath::class)) {
             $filteredTags = array_diff($tags, $propertyPath->tags);
             if (count($filteredTags) !== count($tags)) {
-                if (key_exists($propertyPath->path, $data)) {
+                if (array_key_exists($propertyPath->path, $data)) {
                     return $propertyPath->path;
                 }
             }
         }
 
-        if (key_exists($propertyName, $data)) {
+        if (array_key_exists($propertyName, $data)) {
             return $propertyName;
         }
 
@@ -157,7 +164,7 @@ class Data2DtoConverter
             u($propertyName)->snake()->upper()->toString(),
         ];
         foreach ($variants as $variant) {
-            if (key_exists($variant, $data)) {
+            if (array_key_exists($variant, $data)) {
                 return $variant;
             }
         }
@@ -218,12 +225,12 @@ class Data2DtoConverter
     /**
      * Если значение в $data = null, но поле не может его принять - пропустим
      */
-    private function processNull($value, \ReflectionNamedType $reflectionPropertyType): bool
+    private function processNull(\ReflectionNamedType $reflectionPropertyType, $value): bool
     {
         return $value === null && !$reflectionPropertyType->allowsNull();
     }
 
-    private function processArray(&$value, \ReflectionProperty $property, array $tags): bool
+    private function processArray(\ReflectionProperty $property, &$value, array $tags): bool
     {
         $attributedPropertyClass = $this->grabPropertyDTOClass($property);
 
