@@ -59,7 +59,7 @@ class Data2DtoConverter
                 continue;
             }
 
-            $property->setValue($object, $value);
+            $this->setValue($object, $property, $value);
         }
 
         return $object;
@@ -80,7 +80,7 @@ class Data2DtoConverter
                 $value = $this->convert($data, new $propertyType, $tags);
             }
             // присваиваем получившееся значение
-            $property->setValue($object, $value);
+            $this->setValue($object, $property, $value);
             return true;
         }
         return false;
@@ -92,7 +92,7 @@ class Data2DtoConverter
     protected function processDataObject(object $object, \ReflectionProperty $property, $value): bool
     {
         if (is_object($value)) {
-            $property->setValue($object, $value);
+            $this->setValue($object, $property, $value);
             return true;
         }
         return false;
@@ -262,5 +262,18 @@ class Data2DtoConverter
             return $dtoMeta->class;
         }
         return null;
+    }
+
+    private function setValue(object $object, \ReflectionProperty $property, $value)
+    {
+        if (!$property->isPublic()) {
+            $property->setAccessible(true);
+        }
+
+        $property->setValue($object, $value);
+
+        if (!$property->isPublic()) {
+            $property->setAccessible(false);
+        }
     }
 }
