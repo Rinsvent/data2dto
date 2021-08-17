@@ -72,8 +72,7 @@ class Data2DtoConverter
     {
         $propertyExtractor = new PropertyExtractor($property->class, $property->getName());
         if ($propertyExtractor->fetch(VirtualProperty::class)) {
-            if ($property->isInitialized($object)) {
-                $propertyValue = $property->getValue($object);
+            if ($property->isInitialized($object) && $propertyValue = $property->getValue($object)) {
                 $value = $this->convert($data, $propertyValue, $tags);
             } else {
                 $propertyType = $property->getType()->getName();
