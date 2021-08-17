@@ -76,7 +76,8 @@ class Data2DtoConverter
     {
         $propertyExtractor = new PropertyExtractor($property->class, $property->getName());
         if ($propertyExtractor->fetch(VirtualProperty::class)) {
-            if ($property->isInitialized($object) && $propertyValue = $property->getValue($object)) {
+            $propertyValue = $this->getValue($object, $property);
+            if ($property->isInitialized($object) && $propertyValue) {
                 $value = $this->convert($data, $propertyValue, $tags);
             } else {
                 $propertyType = $property->getType()->getName();
@@ -125,11 +126,11 @@ class Data2DtoConverter
     protected function processClass(object $object, ReflectionProperty $property, string $preparedPropertyType, &$value, array $tags): bool
     {
         if (class_exists($preparedPropertyType)) {
-            $propertyValue = $property->getValue($object);
-            if (!is_array($propertyValue)) {
+            $propertyValue = $this->getValue($object, $property);
+            if (!is_array($value)) {
                 return true;
             }
-            if ($property->isInitialized($object)) {
+            if ($property->isInitialized($object) && $propertyValue) {
                 $value = $this->convert($value, $propertyValue, $tags);
             } else {
                 $value = $this->convert($value, new $preparedPropertyType, $tags);
@@ -285,5 +286,24 @@ class Data2DtoConverter
         if (!$property->isPublic()) {
             $property->setAccessible(false);
         }
+    }
+
+    private function getValue(object $object, \ReflectionProperty $property)
+    {
+        if (!$property->isInitialized($object)) {
+            return null;
+        }
+
+        if (!$property->isPublic()) {
+            $property->setAccessible(true);
+        }
+
+        $value = $property->getValue($object);
+
+        if (!$property->isPublic()) {
+            $property->setAccessible(false);
+        }
+
+        return $value;
     }
 }
