@@ -121,8 +121,7 @@ class Data2DtoConverter
     protected function processClass(object $object, ReflectionProperty $property, string $preparedPropertyType, &$value, array $tags)
     {
         if (class_exists($preparedPropertyType)) {
-            if ($property->isInitialized($object)) {
-                $propertyValue = $property->getValue($object);
+            if ($property->isInitialized($object) && $propertyValue = $property->getValue($object)) {
                 $value = $this->convert($value, $propertyValue, $tags);
             } else {
                 $value = $this->convert($value, new $preparedPropertyType, $tags);
