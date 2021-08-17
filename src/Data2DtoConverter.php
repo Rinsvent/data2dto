@@ -28,6 +28,8 @@ class Data2DtoConverter
         $properties = $reflectionObject->getProperties();
         /** @var \ReflectionProperty $property */
         foreach ($properties as $property) {
+            // todo добавить атрибут на пропуск обработки и еще атрибут на допустимые поля
+
             /** @var \ReflectionNamedType $reflectionPropertyType */
             $reflectionPropertyType = $property->getType();
             $propertyType = $reflectionPropertyType->getName();
@@ -53,7 +55,9 @@ class Data2DtoConverter
                 continue;
             }
 
-            $this->processClass($object, $property, $preparedPropertyType, $value, $tags);
+            if ($this->processClass($object, $property, $preparedPropertyType, $value, $tags)) {
+                continue;
+            }
 
             if ($this->processNull($reflectionPropertyType, $value)) {
                 continue;
@@ -118,15 +122,20 @@ class Data2DtoConverter
     /**
      * Если это class, то рекурсивно заполняем дальше
      */
-    protected function processClass(object $object, ReflectionProperty $property, string $preparedPropertyType, &$value, array $tags)
+    protected function processClass(object $object, ReflectionProperty $property, string $preparedPropertyType, &$value, array $tags): bool
     {
         if (class_exists($preparedPropertyType)) {
-            if ($property->isInitialized($object) && $propertyValue = $property->getValue($object)) {
+            $propertyValue = $property->getValue($object);
+            if (!is_array($propertyValue)) {
+                return true;
+            }
+            if ($property->isInitialized($object)) {
                 $value = $this->convert($value, $propertyValue, $tags);
             } else {
                 $value = $this->convert($value, new $preparedPropertyType, $tags);
             }
         }
+        return false;
     }
 
     protected function grabValue(\ReflectionProperty $property, array $data, array $tags)
@@ -244,6 +253,9 @@ class Data2DtoConverter
             }
             $tempValue = [];
             foreach ($value as $itemValue) {
+                if (!is_array($itemValue)) {
+                    continue;
+                }
                 $tempValue[] = $this->convert($itemValue, new $attributedPropertyClass, $tags);
             }
             $value = $tempValue;
