@@ -3,9 +3,9 @@
 namespace Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest;
 
 use Rinsvent\Data2DTO\Attribute\PropertyPath;
-use Rinsvent\Data2DTO\Attribute\Tags;
+use Rinsvent\Data2DTO\Attribute\TagsResolver;
 
-#[Tags(method: 'getTags')]
+#[TagsResolver(method: 'getTags')]
 class HelloTagsRequest extends HelloRequest
 {
     #[PropertyPath('fake_age2', tags: ['surname-group'])]

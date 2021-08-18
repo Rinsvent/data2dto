@@ -7,7 +7,7 @@ use Rinsvent\AttributeExtractor\ClassExtractor;
 use Rinsvent\AttributeExtractor\PropertyExtractor;
 use Rinsvent\Data2DTO\Attribute\DTOMeta;
 use Rinsvent\Data2DTO\Attribute\PropertyPath;
-use Rinsvent\Data2DTO\Attribute\Tags;
+use Rinsvent\Data2DTO\Attribute\TagsResolver;
 use Rinsvent\Data2DTO\Attribute\VirtualProperty;
 use Rinsvent\Data2DTO\Resolver\TransformerResolverStorage;
 use Rinsvent\Data2DTO\Transformer\Meta;
@@ -189,8 +189,8 @@ class Data2DtoConverter
     protected function processTags(object $object, array $data, array $tags): array
     {
         $classExtractor = new ClassExtractor($object::class);
-        /** @var Tags $tagsMeta */
-        if ($tagsMeta = $classExtractor->fetch(Tags::class)) {
+        /** @var TagsResolver $tagsMeta */
+        if ($tagsMeta = $classExtractor->fetch(TagsResolver::class)) {
             if (method_exists($object, $tagsMeta->method)) {
                 $reflectionMethod = new \ReflectionMethod($object, $tagsMeta->method);
                 if (!$reflectionMethod->isPublic()) {
