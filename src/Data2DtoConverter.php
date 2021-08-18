@@ -7,6 +7,7 @@ use Rinsvent\AttributeExtractor\ClassExtractor;
 use Rinsvent\AttributeExtractor\PropertyExtractor;
 use Rinsvent\Data2DTO\Attribute\DTOMeta;
 use Rinsvent\Data2DTO\Attribute\PropertyPath;
+use Rinsvent\Data2DTO\Attribute\Tags;
 use Rinsvent\Data2DTO\Attribute\VirtualProperty;
 use Rinsvent\Data2DTO\Resolver\TransformerResolverStorage;
 use Rinsvent\Data2DTO\Transformer\Meta;
@@ -19,6 +20,8 @@ class Data2DtoConverter
     {
         $tags = empty($tags) ? ['default'] : $tags;
         $reflectionObject = new \ReflectionObject($object);
+
+        $tags = $this->processTags($object, $data, $tags);
 
         $this->processClassTransformers($reflectionObject, $data, $tags);
         if (is_object($data)) {
@@ -178,6 +181,30 @@ class Data2DtoConverter
         }
 
         return null;
+    }
+
+    /**
+     * Получаем теги для обработки
+     */
+    protected function processTags(object $object, array $data, array $tags): array
+    {
+        $classExtractor = new ClassExtractor($object::class);
+        /** @var Tags $tagsMeta */
+        if ($tagsMeta = $classExtractor->fetch(Tags::class)) {
+            if (method_exists($object, $tagsMeta->method)) {
+                $reflectionMethod = new \ReflectionMethod($object, $tagsMeta->method);
+                if (!$reflectionMethod->isPublic()) {
+                    $reflectionMethod->setAccessible(true);
+                }
+                $methodTags = $reflectionMethod->invoke($object, ...[$data]);
+                if (!$reflectionMethod->isPublic()) {
+                    $reflectionMethod->setAccessible(false);
+                }
+                return $methodTags;
+            }
+        }
+
+        return $tags;
     }
 
     /**
