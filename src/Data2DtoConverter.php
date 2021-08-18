@@ -196,7 +196,7 @@ class Data2DtoConverter
                 if (!$reflectionMethod->isPublic()) {
                     $reflectionMethod->setAccessible(true);
                 }
-                $methodTags = $reflectionMethod->invoke($object, ...[$data]);
+                $methodTags = $reflectionMethod->invoke($object, ...[$data, $tags]);
                 if (!$reflectionMethod->isPublic()) {
                     $reflectionMethod->setAccessible(false);
                 }
