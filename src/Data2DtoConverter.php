@@ -7,7 +7,7 @@ use Rinsvent\AttributeExtractor\ClassExtractor;
 use Rinsvent\AttributeExtractor\PropertyExtractor;
 use Rinsvent\Data2DTO\Attribute\DTOMeta;
 use Rinsvent\Data2DTO\Attribute\PropertyPath;
-use Rinsvent\Data2DTO\Attribute\TagsResolver;
+use Rinsvent\Data2DTO\Attribute\HandleTags;
 use Rinsvent\Data2DTO\Attribute\VirtualProperty;
 use Rinsvent\Data2DTO\Resolver\TransformerResolverStorage;
 use Rinsvent\Data2DTO\Transformer\Meta;
@@ -16,12 +16,15 @@ use function Symfony\Component\String\u;
 
 class Data2DtoConverter
 {
+    public function getTags(array $data, object $object, array $tags = []): array
+    {
+        return $this->processTags($object, $data, $tags);
+    }
+
     public function convert(array $data, object $object, array $tags = []): object
     {
         $tags = empty($tags) ? ['default'] : $tags;
         $reflectionObject = new \ReflectionObject($object);
-
-        $tags = $this->processTags($object, $data, $tags);
 
         $this->processClassTransformers($reflectionObject, $data, $tags);
         if (is_object($data)) {
@@ -189,8 +192,8 @@ class Data2DtoConverter
     protected function processTags(object $object, array $data, array $tags): array
     {
         $classExtractor = new ClassExtractor($object::class);
-        /** @var TagsResolver $tagsMeta */
-        if ($tagsMeta = $classExtractor->fetch(TagsResolver::class)) {
+        /** @var HandleTags $tagsMeta */
+        if ($tagsMeta = $classExtractor->fetch(HandleTags::class)) {
             if (method_exists($object, $tagsMeta->method)) {
                 $reflectionMethod = new \ReflectionMethod($object, $tagsMeta->method);
                 if (!$reflectionMethod->isPublic()) {

@@ -3,9 +3,6 @@
 namespace Rinsvent\Data2DTO\Tests\Converter;
 
 use Rinsvent\Data2DTO\Data2DtoConverter;
-use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\Bar;
-use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\BuyRequest;
-use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\HelloRequest;
 use Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\HelloTagsRequest;
 
 class TagsTest extends \Codeception\Test\Unit
@@ -27,7 +24,8 @@ class TagsTest extends \Codeception\Test\Unit
     public function testSuccessFillRequestData()
     {
         $data2DtoConverter = new Data2DtoConverter();
-        $dto = $data2DtoConverter->convert([
+
+        $data = [
             'surname' => 'Surname1234',
             'fake_age' => 3,
             'fake_age2' => 7,
@@ -36,7 +34,9 @@ class TagsTest extends \Codeception\Test\Unit
                 'af234f',
                 'asdf33333'
             ],
-        ], new HelloTagsRequest);
+        ];
+        $tags = $data2DtoConverter->getTags($data, new HelloTagsRequest);
+        $dto = $data2DtoConverter->convert($data, new HelloTagsRequest, $tags);
         $this->assertInstanceOf(HelloTagsRequest::class, $dto);
         $this->assertEquals(7, $dto->age);
 

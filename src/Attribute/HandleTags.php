@@ -3,7 +3,7 @@
 namespace Rinsvent\Data2DTO\Attribute;
 
 #[\Attribute]
-class TagsResolver
+class HandleTags
 {
     public function __construct(
         public string $method,
