@@ -2,7 +2,7 @@
 
 namespace Rinsvent\Data2DTO\Transformer;
 
-#[\Attribute]
+#[\Attribute(\Attribute::IS_REPEATABLE|\Attribute::TARGET_ALL)]
 class Trim extends Meta
 {
     public function __construct(

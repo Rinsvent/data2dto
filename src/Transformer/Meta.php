@@ -2,7 +2,7 @@
 
 namespace Rinsvent\Data2DTO\Transformer;
 
-#[\Attribute]
+#[\Attribute(\Attribute::IS_REPEATABLE|\Attribute::TARGET_ALL)]
 abstract class Meta
 {
     public const TYPE = 'simple';
