@@ -18,4 +18,16 @@ class HelloRequest
     public BuyRequest $buy;
     #[DTOMeta(class: Bar::class)]
     public BarInterface $bar;
+
+    private BuyRequest $buy2;
+
+    public function getBuy2(): BuyRequest
+    {
+        return $this->buy2;
+    }
+
+    public function setBuy2(BuyRequest $buy2): void
+    {
+        $this->buy2 = $buy2;
+    }
 }

@@ -320,12 +320,15 @@ class Data2DtoConverter
 
     private function getValue(object $object, \ReflectionProperty $property)
     {
-        if (!$property->isInitialized($object)) {
-            return null;
-        }
-
         if (!$property->isPublic()) {
             $property->setAccessible(true);
+        }
+
+        if (!$property->isInitialized($object)) {
+            if (!$property->isPublic()) {
+                $property->setAccessible(false);
+            }
+            return null;
         }
 
         $value = $property->getValue($object);
