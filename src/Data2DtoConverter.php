@@ -9,13 +9,19 @@ use Rinsvent\Data2DTO\Attribute\DTOMeta;
 use Rinsvent\Data2DTO\Attribute\PropertyPath;
 use Rinsvent\Data2DTO\Attribute\HandleTags;
 use Rinsvent\Data2DTO\Attribute\VirtualProperty;
-use Rinsvent\Data2DTO\Resolver\TransformerResolverStorage;
-use Rinsvent\Data2DTO\Transformer\Meta;
-use Rinsvent\Data2DTO\Transformer\TransformerInterface;
+use Rinsvent\Transformer\Transformer;
+use Rinsvent\Transformer\Transformer\Meta;
 use function Symfony\Component\String\u;
 
 class Data2DtoConverter
 {
+    private Transformer $transformer;
+
+    public function __construct()
+    {
+        $this->transformer = new Transformer();
+    }
+
     public function getTags(array $data, object $object, array $tags = []): array
     {
         return $this->processTags($object, $data, $tags);
@@ -78,8 +84,12 @@ class Data2DtoConverter
     /**
      * Для виртуальных полей добавляем пустой масиив, чтобы заполнить поля дто
      */
-    protected function processVirtualProperty(object $object, \ReflectionProperty $property, array $data, array $tags): bool
-    {
+    protected function processVirtualProperty(
+        object $object,
+        \ReflectionProperty $property,
+        array $data,
+        array $tags
+    ): bool {
         $propertyExtractor = new PropertyExtractor($property->class, $property->getName());
         if ($propertyExtractor->fetch(VirtualProperty::class)) {
             $propertyValue = $this->getValue($object, $property);
@@ -129,8 +139,13 @@ class Data2DtoConverter
     /**
      * Если это class, то рекурсивно заполняем дальше
      */
-    protected function processClass(object $object, ReflectionProperty $property, string $preparedPropertyType, &$value, array $tags): bool
-    {
+    protected function processClass(
+        object $object,
+        ReflectionProperty $property,
+        string $preparedPropertyType,
+        &$value,
+        array $tags
+    ): bool {
         if (class_exists($preparedPropertyType)) {
             $propertyValue = $this->getValue($object, $property);
             if (!is_array($value)) {
@@ -220,13 +235,7 @@ class Data2DtoConverter
         /** @var Meta $transformMeta */
         while ($transformMeta = $classExtractor->fetch(Meta::class)) {
             $transformMeta->returnType = $className;
-            $filteredTags = array_diff($tags, $transformMeta->tags);
-            if (count($filteredTags) === count($tags)) {
-                continue;
-            }
-
-            $transformer = $this->grabTransformer($transformMeta);
-            $transformer->transform($data, $transformMeta);
+            $data = $this->transformer->transform($data, $transformMeta, $tags);
         }
     }
 
@@ -239,25 +248,13 @@ class Data2DtoConverter
         $propertyExtractor = new PropertyExtractor($property->class, $propertyName);
         /** @var Meta $transformMeta */
         while ($transformMeta = $propertyExtractor->fetch(Meta::class)) {
-            $filteredTags = array_diff($tags, $transformMeta->tags);
-            if (count($filteredTags) === count($tags)) {
-                continue;
-            }
             /** @var \ReflectionNamedType $reflectionPropertyType */
             $reflectionPropertyType = $property->getType();
             $propertyType = $reflectionPropertyType->getName();
-            $transformMeta->returnType = $propertyType;
+            $transformMeta->retrnType = $propertyType;
             $transformMeta->allowsNull = $reflectionPropertyType->allowsNull();
-            $transformer = $this->grabTransformer($transformMeta);
-            $transformer->transform($data, $transformMeta);
+            $data = $this->transformer->transform($data, $transformMeta, $tags);
         }
-    }
-
-    protected function grabTransformer(Meta $meta): TransformerInterface
-    {
-        $storage = TransformerResolverStorage::getInstance();
-        $resolver = $storage->get($meta::TYPE);
-        return $resolver->resolve($meta);
     }
 
     /**

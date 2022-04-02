@@ -2,8 +2,8 @@
 
 namespace Rinsvent\Data2DTO\Tests\unit\Converter\fixtures\FillTest\Transformer;
 
-use Rinsvent\Data2DTO\Transformer\Meta;
-use Rinsvent\Data2DTO\Transformer\TransformerInterface;
+use Rinsvent\Transformer\Transformer\Meta;
+use Rinsvent\Transformer\Transformer\TransformerInterface;
 
 class ClassDataTransformer implements TransformerInterface
 {
@@ -11,14 +11,15 @@ class ClassDataTransformer implements TransformerInterface
      * @param array|null $data
      * @param ClassData $meta
      */
-    public function transform(&$data, Meta $meta): void
+    public function transform(mixed $data, Meta $meta): mixed
     {
         if ($data === null) {
-            return;
+            return $data;
         }
 
         if (isset($data['surname'])) {
             $data['surname'] = '123454321';
         }
+        return $data;
     }
 }
