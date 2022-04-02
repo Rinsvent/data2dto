@@ -9,7 +9,7 @@
         "ext-json": "*",
         "symfony/string": "^5.3",
         "rinsvent/attribute-extractor": "^0.0",
-        "rinsvent/transformer": "^0.0.2"
+        "rinsvent/transformer": "^0."
     },
     "require-dev": {
         "codeception/codeception": "^4.1",
